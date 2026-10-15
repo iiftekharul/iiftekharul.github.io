@@ -3,7 +3,34 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pure Native 3D Flipbook</title>
+  <title>High Quality 3D Flipbook</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- StPageFlip Engine with Canvas Mesh Curling -->
+  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            roseGold: '#D88383',
+            roseDark: '#B04E4E',
+            warmCream: '#FAF7F5',
+            softPaper: '#FFFDFB',
+            dustyPink: '#F3D7D7',
+          },
+          fontFamily: {
+            serif: ['Georgia', 'Cambria', 'serif'],
+          }
+        }
+      }
+    }
+  </script>
+
   <style>
     * {
       box-sizing: border-box;
@@ -20,105 +47,77 @@
       align-items: center;
       justify-content: center;
       overflow-x: hidden;
-      padding: 20px;
+      padding: 10px;
     }
 
-    /* Container Wrapper */
-    .flipbook-app {
+    /* Outer Wrapper Card */
+    #app-viewport {
       width: 100%;
-      max-width: 1050px;
+      max-width: 1200px;
       background: #ffffff;
-      border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
-      padding: 24px;
+      border-radius: 1.25rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.12);
+      padding: 1.5rem;
       display: flex;
       flex-direction: column;
       align-items: center;
+      transition: all 0.3s ease;
     }
 
-    /* 3D Viewport Stage */
-    .viewport {
-      perspective: 2000px;
+    /* Fullscreen Stage Override */
+    #app-viewport:fullscreen,
+    #app-viewport:-webkit-full-screen {
+      max-width: 100vw !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      border-radius: 0 !important;
+      padding: 2rem !important;
+      justify-content: space-between !important;
+      background: #FAF7F5 !important;
+    }
+
+    /* 3D Large Stage Container */
+    .stage-container {
       width: 100%;
-      height: 520px;
+      min-height: 620px;
       display: flex;
       justify-content: center;
       align-items: center;
+      margin-bottom: 1rem;
       position: relative;
-      user-select: none;
     }
 
-    /* 3D Book Container */
-    .book {
-      width: 380px;
-      height: 500px;
-      position: relative;
-      transform-style: preserve-3d;
-      transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    /* StPageFlip Canvas Parent */
+    .stpageflip-container {
+      margin: 0 auto;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
     }
 
-    /* Native 3D Page Sheet */
+    /* Page Styles */
     .page {
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-      transform-origin: left center;
-      transform-style: preserve-3d;
-      transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1);
-      cursor: pointer;
-      border-radius: 0 8px 8px 0;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.12);
-    }
-
-    /* Page Front and Back Faces */
-    .page-face {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      top: 0;
-      left: 0;
-      backface-visibility: hidden;
-      border-radius: 0 8px 8px 0;
+      background-color: #FFFDFB;
+      background-image: linear-gradient(to right, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0) 6%);
       overflow: hidden;
-      background: #FFFDFB;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 20px;
       border: 1px solid #f0e6e6;
       box-sizing: border-box;
-    }
-
-    /* Spine Shadow Effect */
-    .page-face::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 35px;
-      height: 100%;
-      background: linear-gradient(to right, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0) 100%);
-      pointer-events: none;
-      z-index: 5;
-    }
-
-    .page-face.back {
-      transform: rotateY(180deg);
-      border-radius: 8px 0 0 8px;
-    }
-
-    .page-face.back::before {
-      left: auto;
-      right: 0;
-      background: linear-gradient(to left, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0) 100%);
     }
 
     .page-cover {
       background: linear-gradient(135deg, #FAF7F5 0%, #F3D7D7 100%);
       color: #333;
       border: 2px solid #D88383;
+    }
+
+    .page-content {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+      position: relative;
+      box-sizing: border-box;
     }
 
     .page-image-container {
@@ -130,6 +129,7 @@
       overflow: hidden;
       border-radius: 8px;
       background: #fdfbfb;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.03);
       cursor: zoom-in;
     }
 
@@ -138,173 +138,133 @@
       max-height: 100%;
       object-fit: contain;
       user-select: none;
-      pointer-events: auto;
+      -webkit-user-drag: none;
     }
 
     .page-number {
+      position: absolute;
+      bottom: 10px;
+      left: 0;
+      right: 0;
       text-align: center;
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       color: #888888;
       font-family: Georgia, serif;
-    }
-
-    /* Page Flipped CSS State */
-    .page.flipped {
-      transform: rotateY(-180deg);
-    }
-
-    /* Controls Toolbar */
-    .toolbar {
-      width: 100%;
-      background: #FAF7F5;
-      border: 1px solid #F3D7D7;
-      padding: 12px 20px;
-      border-radius: 12px;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-top: 15px;
-    }
-
-    .btn {
-      background: #ffffff;
-      color: #333;
-      border: 1px solid #e2e8f0;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s;
-    }
-
-    .btn:hover {
-      background: #D88383;
-      color: white;
-      border-color: #D88383;
-    }
-
-    .btn-upload {
-      background: #D88383;
-      color: white;
-      border: none;
-    }
-
-    .btn-upload:hover {
-      background: #B04E4E;
-    }
-
-    /* Lightbox Modal */
-    .modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.95);
-      z-index: 99999;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-    }
-
-    .modal.active {
-      display: flex;
-    }
-
-    .modal img {
-      max-width: 90%;
-      max-height: 85vh;
-      object-fit: contain;
-      border-radius: 8px;
-    }
-
-    .close-modal {
-      position: absolute;
-      top: 20px;
-      right: 25px;
-      color: white;
-      font-size: 2rem;
-      cursor: pointer;
     }
   </style>
 </head>
 <body>
 
-  <div class="flipbook-app" id="app-wrapper">
+  <div id="app-viewport">
     
-    <!-- 3D Stage -->
-    <div class="viewport">
-      <div class="book" id="book">
+    <!-- Large 3D Stage -->
+    <div class="stage-container" id="stage-container">
+      <div id="flipbook" class="stpageflip-container">
         
-        <!-- DEFAULT DEMO PAGES -->
-        <div class="page" style="z-index: 2;">
-          <div class="page-face front page-cover" style="text-align: center; justify-content: center;">
-            <h2 style="font-size: 1.5rem; color: #B04E4E; margin-bottom: 10px;">3D Interactive Flipbook</h2>
-            <p style="font-size: 0.85rem; color: #666;">Click page or drag mouse to turn!</p>
-          </div>
-          <div class="page-face back" style="text-align: center; justify-content: center;">
-            <p style="font-size: 0.9rem; color: #555;">Click <b>"Upload Images"</b> below to build your custom photo album.</p>
+        <!-- DEFAULT FRONT COVER -->
+        <div class="page page-cover">
+          <div class="page-content text-center flex flex-col justify-between items-center h-full py-10">
+            <div class="mt-4">
+              <span class="text-4xl text-roseGold"><i class="fa-solid fa-book-open"></i></span>
+              <p class="text-xs uppercase tracking-widest text-roseDark font-bold mt-3">3D Interactive Album</p>
+            </div>
+            <div class="my-auto px-4">
+              <h2 class="font-serif text-3xl font-bold text-gray-800 leading-tight mb-3">3D Paper Curl Magazine</h2>
+              <div class="w-20 h-0.5 bg-roseGold mx-auto my-3"></div>
+              <p class="text-base font-serif text-gray-600 italic">Grab page corner with mouse to drag & curl!</p>
+            </div>
+            <div class="mb-4">
+              <p class="text-xs text-gray-500 italic">Drag corner to turn page ➔</p>
+            </div>
           </div>
         </div>
 
-        <div class="page" style="z-index: 1;">
-          <div class="page-face front" style="text-align: center; justify-content: center;">
-            <p style="font-size: 0.9rem; color: #555;">Pure Native HTML5 & CSS 3D Engine.</p>
+        <!-- DEFAULT INSIDE DEMO PAGE -->
+        <div class="page">
+          <div class="page-content text-center flex flex-col justify-center items-center h-full">
+            <h3 class="font-serif text-2xl font-bold text-gray-800 mb-3">Real Paper Mesh Physics</h3>
+            <p class="text-sm text-gray-600 max-w-sm leading-relaxed">Click "Upload Images" below to load your photos into this high quality 3D book.</p>
             <div class="page-number">- 1 -</div>
           </div>
-          <div class="page-face back page-cover" style="text-align: center; justify-content: center;">
-            <h3 style="font-size: 1.2rem; color: #B04E4E;">The End</h3>
+        </div>
+
+        <!-- DEFAULT BACK COVER -->
+        <div class="page page-cover">
+          <div class="page-content text-center flex flex-col justify-center items-center h-full py-10">
+            <span class="text-4xl text-roseGold"><i class="fa-solid fa-heart"></i></span>
+            <p class="font-serif text-xl font-bold text-gray-800 mt-3">The End</p>
           </div>
         </div>
 
       </div>
     </div>
 
-    <!-- Controls -->
-    <div class="toolbar">
-      <label for="image-upload" class="btn btn-upload">
-        📷 Upload Images
-      </label>
-      <input type="file" id="image-upload" multiple accept="image/*" style="display: none;" />
-
-      <div style="display: flex; gap: 8px; align-items: center;">
-        <button class="btn" id="btn-first">⏮ First</button>
-        <button class="btn" id="btn-prev">◀ Prev</button>
-        <span id="page-indicator" style="font-size: 0.85rem; font-weight: 600; color: #555; padding: 0 8px;">Page 0 of 0</span>
-        <button class="btn" id="btn-next">Next ▶</button>
-        <button class="btn" id="btn-last">Last ⏭</button>
+    <!-- Controls Toolbar -->
+    <div class="w-full flex flex-wrap items-center justify-between gap-3 bg-warmCream p-3 rounded-xl border border-dustyPink/40">
+      
+      <!-- Upload Button inside Toolbar -->
+      <div>
+        <label for="image-upload" class="inline-flex items-center gap-2 bg-roseGold hover:bg-roseDark text-white px-5 py-2.5 rounded-lg shadow-sm transition-all cursor-pointer text-sm font-semibold">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>Upload Images</span>
+        </label>
+        <input type="file" id="image-upload" multiple accept="image/*" class="hidden" />
       </div>
 
-      <div style="display: flex; gap: 8px;">
-        <button class="btn" id="btn-autoplay">▶ Auto</button>
-        <button class="btn" id="btn-sound">🔊 Sound</button>
-        <button class="btn" id="btn-fullscreen">⛶ Fullscreen</button>
+      <!-- Page Navigation Controls -->
+      <div class="flex items-center gap-1 sm:gap-2">
+        <button id="btn-first" title="First Page" class="p-2.5 px-3.5 bg-white hover:bg-roseGold hover:text-white text-gray-700 rounded-lg shadow-sm border border-gray-200 transition-colors text-sm">
+          <i class="fa-solid fa-backward-step"></i>
+        </button>
+        <button id="btn-prev" title="Previous Page" class="p-2.5 px-3.5 bg-white hover:bg-roseGold hover:text-white text-gray-700 rounded-lg shadow-sm border border-gray-200 transition-colors text-sm">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <span class="text-sm font-serif px-3 text-gray-600 font-semibold select-none min-w-[100px] text-center" id="page-indicator">
+          Page 1 of 3
+        </span>
+        <button id="btn-next" title="Next Page" class="p-2.5 px-3.5 bg-white hover:bg-roseGold hover:text-white text-gray-700 rounded-lg shadow-sm border border-gray-200 transition-colors text-sm">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+        <button id="btn-last" title="Last Page" class="p-2.5 px-3.5 bg-white hover:bg-roseGold hover:text-white text-gray-700 rounded-lg shadow-sm border border-gray-200 transition-colors text-sm">
+          <i class="fa-solid fa-forward-step"></i>
+        </button>
       </div>
+
+      <!-- Secondary Action Controls -->
+      <div class="flex items-center gap-2">
+        <button id="btn-autoplay" title="Toggle Auto Play" class="flex items-center gap-1.5 p-2.5 px-3.5 bg-white hover:bg-roseGold hover:text-white text-gray-700 rounded-lg shadow-sm border border-gray-200 transition-colors text-xs font-semibold">
+          <i id="autoplay-icon" class="fa-solid fa-play"></i>
+          <span class="hidden sm:inline">Auto</span>
+        </button>
+
+        <button id="btn-sound" title="Toggle Sound" class="p-2.5 px-3.5 bg-white hover:bg-roseGold hover:text-white text-roseGold rounded-lg shadow-sm border border-gray-200 transition-colors text-sm">
+          <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+        </button>
+
+        <button id="btn-fullscreen" title="Toggle Stage Fullscreen" class="p-2.5 px-3.5 bg-white hover:bg-roseGold hover:text-white text-gray-700 rounded-lg shadow-sm border border-gray-200 transition-colors text-sm">
+          <i class="fa-solid fa-expand"></i>
+        </button>
+      </div>
+
     </div>
 
   </div>
 
-  <!-- Fullscreen Modal -->
-  <div class="modal" id="image-modal">
-    <span class="close-modal" id="close-modal">&times;</span>
-    <img id="modal-image" src="" alt="Full Screen" />
+  <!-- FULLSCREEN LIGHTBOX MODAL FOR IMAGES -->
+  <div id="image-modal" class="fixed inset-0 bg-black/95 z-[99999] hidden flex-col items-center justify-center p-4 backdrop-blur-md">
+    <button id="close-modal" class="absolute top-5 right-5 text-white text-3xl p-3 hover:text-roseGold transition-colors focus:outline-none">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <img id="modal-image" src="" alt="Full Screen View" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" />
+    <p class="text-white/70 text-xs mt-3 font-serif">Click anywhere or press ESC to close</p>
   </div>
 
   <script>
-    const book = document.getElementById('book');
-    const imageUpload = document.getElementById('image-upload');
-    const pageIndicator = document.getElementById('page-indicator');
-    
-    let pages = [];
-    let currentPageIndex = 0;
+    let pageFlip = null;
     let autoPlayInterval = null;
     let soundEnabled = true;
 
-    // Web Audio Synthesizer for Paper Sound Effect
+    // Web Audio Synthesizer for Paper Turn Sound
     function playPageTurnSound() {
       if (!soundEnabled) return;
       try {
@@ -342,173 +302,223 @@
       } catch (e) {}
     }
 
-    function initPages() {
-      pages = Array.from(book.querySelectorAll('.page'));
-      updatePageZIndex();
+    // High Resolution Dynamic Aspect Ratio
+    function getBookDimensions() {
+      const screenWidth = window.innerWidth;
+      if (screenWidth < 640) {
+        return { width: 320, height: 460 };
+      } else if (screenWidth < 1024) {
+        return { width: 420, height: 580 };
+      } else {
+        return { width: 480, height: 640 }; // Large HQ Aspect Ratio
+      }
     }
 
-    function updatePageZIndex() {
-      pages.forEach((page, index) => {
-        if (index < currentPageIndex) {
-          page.classList.add('flipped');
-          page.style.zIndex = index;
-        } else {
-          page.classList.remove('flipped');
-          page.style.zIndex = pages.length - index;
-        }
+    function initFlipbook() {
+      const container = document.getElementById('flipbook');
+      if (!container) return;
+
+      const dims = getBookDimensions();
+
+      if (pageFlip) {
+        try { pageFlip.destroy(); } catch (err) {}
+        pageFlip = null;
+      }
+
+      pageFlip = new St.PageFlip(container, {
+        width: dims.width,
+        height: dims.height,
+        size: "fixed",
+        minWidth: 300,
+        maxWidth: 700,
+        minHeight: 400,
+        maxHeight: 900,
+        drawShadow: true,
+        showCover: true,
+        usePortrait: window.innerWidth < 640,
+        maxShadowOpacity: 0.8,
+        flippingTime: 1000,
+        useMouseEvents: true, // Native 3D Mouse Corner Peeling & Curling
+        swipeDistance: 15,
+        clickEventForward: true
       });
-      pageIndicator.textContent = `Page ${currentPageIndex} of ${pages.length}`;
+
+      const pages = container.querySelectorAll('.page');
+      if (pages.length > 0) {
+        pageFlip.loadFromHTML(pages);
+      }
+
+      pageFlip.on('flip', () => {
+        playPageTurnSound();
+        updateIndicator();
+      });
+
+      updateIndicator();
       attachImageEvents();
     }
 
-    function flipNext() {
-      if (currentPageIndex < pages.length) {
-        currentPageIndex++;
-        playPageTurnSound();
-        updatePageZIndex();
-      }
+    function updateIndicator() {
+      if (!pageFlip) return;
+      const current = pageFlip.getCurrentPageIndex() + 1;
+      const total = pageFlip.getPageCount();
+      document.getElementById('page-indicator').innerText = `Page ${current} of ${total}`;
     }
 
-    function flipPrev() {
-      if (currentPageIndex > 0) {
-        currentPageIndex--;
-        playPageTurnSound();
-        updatePageZIndex();
-      }
-    }
-
-    // Direct Mouse Click / Drag Gesture on Pages
-    let startX = 0;
-    book.addEventListener('mousedown', (e) => {
-      startX = e.clientX;
-    });
-
-    book.addEventListener('mouseup', (e) => {
-      const diffX = e.clientX - startX;
-      if (Math.abs(diffX) > 30) {
-        if (diffX < 0) flipNext(); // Drag Left to Flip Next
-        else flipPrev();          // Drag Right to Flip Prev
-      } else {
-        // Simple Click Handling
-        if (e.target.tagName !== 'IMG') {
-          const rect = book.getBoundingClientRect();
-          const clickX = e.clientX - rect.left;
-          if (clickX > rect.width / 2) flipNext();
-          else flipPrev();
-        }
-      }
-    });
-
-    // Dynamic Image Upload
-    imageUpload.addEventListener('change', (e) => {
-      const files = Array.from(e.target.files);
-      if (files.length === 0) return;
-
-      book.innerHTML = '';
-      pages = [];
-      currentPageIndex = 0;
-
-      const imageUrls = files.map(file => URL.createObjectURL(file));
-
-      // Front Cover
-      const coverPage = document.createElement('div');
-      coverPage.className = 'page';
-      coverPage.innerHTML = `
-        <div class="page-face front page-cover" style="text-align: center; justify-content: center;">
-          <h2 style="font-size: 1.5rem; color: #B04E4E;">My Photo Album</h2>
-          <p style="font-size: 0.85rem; color: #666; margin-top: 8px;">${files.length} Photos Loaded</p>
-        </div>
-        <div class="page-face back">
-          ${imageUrls[0] ? `<div class="page-image-container"><img src="${imageUrls[0]}" /></div><div class="page-number">- 1 -</div>` : ''}
-        </div>
-      `;
-      book.appendChild(coverPage);
-
-      // Inner Pages
-      for (let i = 1; i < imageUrls.length; i += 2) {
-        const frontImg = imageUrls[i];
-        const backImg = imageUrls[i + 1] || null;
-
-        const pageEl = document.createElement('div');
-        pageEl.className = 'page';
-        pageEl.innerHTML = `
-          <div class="page-face front">
-            <div class="page-image-container"><img src="${frontImg}" /></div>
-            <div class="page-number">- ${i + 1} -</div>
-          </div>
-          <div class="page-face back">
-            ${backImg ? `<div class="page-image-container"><img src="${backImg}" /></div><div class="page-number">- ${i + 2} -</div>` : '<div class="page-content" style="justify-content:center; text-align:center;"><h3>The End</h3></div>'}
-          </div>
-        `;
-        book.appendChild(pageEl);
-      }
-
-      initPages();
-    });
-
-    // Fullscreen Image Lightbox
     function attachImageEvents() {
       document.querySelectorAll('.page-image-container img').forEach(img => {
         img.onclick = (e) => {
           e.stopPropagation();
           document.getElementById('modal-image').src = img.src;
-          document.getElementById('image-modal').classList.add('active');
+          const modal = document.getElementById('image-modal');
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
         };
       });
     }
 
+    // Dynamic Image Upload Handling
+    document.getElementById('image-upload').addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      const stage = document.getElementById('stage-container');
+      stage.innerHTML = '<div id="flipbook" class="stpageflip-container"></div>';
+      const container = document.getElementById('flipbook');
+
+      // Front Cover
+      const coverPage = document.createElement('div');
+      coverPage.className = 'page page-cover';
+      coverPage.innerHTML = `
+        <div class="page-content text-center flex flex-col justify-between items-center h-full py-10">
+          <div class="mt-4">
+            <span class="text-4xl text-roseGold"><i class="fa-solid fa-images"></i></span>
+            <p class="text-xs uppercase tracking-widest text-roseDark font-bold mt-3">Custom Photo Album</p>
+          </div>
+          <div class="my-auto px-4">
+            <h2 class="font-serif text-3xl font-bold text-gray-800 leading-tight mb-2">My Photo Album</h2>
+            <div class="w-16 h-0.5 bg-roseGold mx-auto my-3"></div>
+            <p class="text-sm font-serif text-gray-600 italic">${files.length} Photos Loaded</p>
+          </div>
+          <div class="mb-4">
+            <p class="text-xs text-gray-500 italic">Drag page corner to turn ➔</p>
+          </div>
+        </div>
+      `;
+      container.appendChild(coverPage);
+
+      // Add Uploaded Photos
+      files.forEach((file, index) => {
+        const page = document.createElement('div');
+        page.className = 'page';
+        const url = URL.createObjectURL(file);
+        page.innerHTML = `
+          <div class="page-content">
+            <div class="page-image-container" title="Click to view full screen">
+              <img src="${url}" alt="Photo ${index + 1}" />
+            </div>
+            <div class="page-number">- ${index + 1} -</div>
+          </div>
+        `;
+        container.appendChild(page);
+      });
+
+      // Back Cover
+      const backCover = document.createElement('div');
+      backCover.className = 'page page-cover';
+      backCover.innerHTML = `
+        <div class="page-content text-center flex flex-col justify-between items-center h-full py-10">
+          <div class="my-auto">
+            <span class="text-4xl text-roseGold"><i class="fa-solid fa-heart"></i></span>
+            <p class="font-serif text-xl font-bold text-gray-800 mt-3">The End</p>
+            <p class="text-xs text-roseDark font-semibold mt-1">Thank You for Viewing</p>
+          </div>
+        </div>
+      `;
+      container.appendChild(backCover);
+
+      initFlipbook();
+    });
+
+    // Control Button Event Listeners
+    document.getElementById('btn-next').onclick = () => pageFlip && pageFlip.flipNext();
+    document.getElementById('btn-prev').onclick = () => pageFlip && pageFlip.flipPrev();
+    document.getElementById('btn-first').onclick = () => pageFlip && pageFlip.flip(0);
+    document.getElementById('btn-last').onclick = () => pageFlip && pageFlip.flip(pageFlip.getPageCount() - 1);
+
+    // Lightbox Controls
     document.getElementById('close-modal').onclick = closeModal;
     document.getElementById('image-modal').onclick = (e) => {
       if (e.target.id === 'image-modal') closeModal();
     };
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
 
     function closeModal() {
-      document.getElementById('image-modal').classList.remove('active');
+      const modal = document.getElementById('image-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
     }
 
-    // Button Listeners
-    document.getElementById('btn-next').onclick = flipNext;
-    document.getElementById('btn-prev').onclick = flipPrev;
-    document.getElementById('btn-first').onclick = () => { currentPageIndex = 0; playPageTurnSound(); updatePageZIndex(); };
-    document.getElementById('btn-last').onclick = () => { currentPageIndex = pages.length; playPageTurnSound(); updatePageZIndex(); };
-
-    // Auto Play
+    // Auto Play Toggle
     const autoBtn = document.getElementById('btn-autoplay');
+    const autoIcon = document.getElementById('autoplay-icon');
     autoBtn.onclick = () => {
       if (autoPlayInterval) {
         clearInterval(autoPlayInterval);
         autoPlayInterval = null;
-        autoBtn.textContent = '▶ Auto';
+        autoIcon.className = 'fa-solid fa-play';
+        autoBtn.classList.remove('bg-roseGold', 'text-white');
+        autoBtn.classList.add('bg-white', 'text-gray-700');
       } else {
-        autoBtn.textContent = '⏸ Pause';
+        autoIcon.className = 'fa-solid fa-pause';
+        autoBtn.classList.remove('bg-white', 'text-gray-700');
+        autoBtn.classList.add('bg-roseGold', 'text-white');
         autoPlayInterval = setInterval(() => {
-          if (currentPageIndex >= pages.length) currentPageIndex = 0;
-          else currentPageIndex++;
-          playPageTurnSound();
-          updatePageZIndex();
+          if (pageFlip) {
+            if (pageFlip.getCurrentPageIndex() >= pageFlip.getPageCount() - 1) {
+              pageFlip.flip(0);
+            } else {
+              pageFlip.flipNext();
+            }
+          }
         }, 3000);
       }
     };
 
-    // Sound
+    // Sound Toggle
     const soundBtn = document.getElementById('btn-sound');
+    const soundIcon = document.getElementById('sound-icon');
     soundBtn.onclick = () => {
       soundEnabled = !soundEnabled;
-      soundBtn.textContent = soundEnabled ? '🔊 Sound' : '🔇 Mute';
-    };
-
-    // Fullscreen Mode
-    document.getElementById('btn-fullscreen').onclick = () => {
-      const elem = document.documentElement;
-      if (!document.fullscreenElement) {
-        if (elem.requestFullscreen) elem.requestFullscreen();
+      if (soundEnabled) {
+        soundIcon.className = 'fa-solid fa-volume-high';
+        soundBtn.classList.add('text-roseGold');
+        soundBtn.classList.remove('text-gray-400');
       } else {
-        if (document.exitFullscreen) document.exitFullscreen();
+        soundIcon.className = 'fa-solid fa-volume-xmark';
+        soundBtn.classList.remove('text-roseGold');
+        soundBtn.classList.add('text-gray-400');
       }
     };
 
-    // Start App
-    initPages();
+    // Correct Full Screen Container Handling
+    document.getElementById('btn-fullscreen').onclick = () => {
+      const elem = document.getElementById('app-viewport');
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (elem.requestFullscreen) elem.requestFullscreen();
+        else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      }
+    };
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', initFlipbook);
+    window.addEventListener('resize', () => {
+      if (pageFlip) initFlipbook();
+    });
   </script>
 </body>
 </html>
