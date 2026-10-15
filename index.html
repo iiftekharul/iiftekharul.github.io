@@ -1,263 +1,474 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Interactive Flipbook</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Interactive Flipbook Reader</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- PageFlip (StPageFlip) Library -->
+  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+  <!-- FontAwesome for Controls Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            roseGold: '#D88383',
+            roseDark: '#B04E4E',
+            warmCream: '#FAF7F5',
+            softPaper: '#FFFDFB',
+            dustyPink: '#F3D7D7',
+          },
+          fontFamily: {
+            serif: ['Georgia', 'Cambria', 'serif'],
+          }
+        }
+      }
+    }
+  </script>
+
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
     body {
-      background: #0f172a;
-      color: #ffffff;
-      font-family: Arial, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
+      background-color: #FAF7F5;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow-x: hidden;
     }
 
-    header {
-      width: 100%;
-      padding: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #1e293b;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    }
-
-    h1 {
-      font-size: 1.4rem;
-      color: #38bdf8;
-    }
-
-    .upload-btn {
-      background: #2563eb;
-      color: white;
-      padding: 10px 18px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .upload-btn:hover {
-      background: #1d4ed8;
-    }
-
-    #imageInput {
-      display: none;
-    }
-
-    /* Flipbook Container */
-    .viewport {
-      perspective: 1200px;
-      width: 100%;
-      height: 60vh;
+    /* Flipbook Container styling */
+    .flipbook-stage {
+      perspective: 1500px;
       display: flex;
       justify-content: center;
       align-items: center;
+      min-height: 520px;
     }
 
-    .book {
-      width: 300px;
-      height: 420px;
-      position: relative;
-      transform-style: preserve-3d;
+    .stpageflip-container {
+      margin: 0 auto;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+      border-radius: 8px;
     }
 
+    /* Individual Page Styling */
     .page {
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-      transform-origin: left center;
-      transform-style: preserve-3d;
-      transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1);
-      cursor: pointer;
-      border-radius: 0 8px 8px 0;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+      background-color: #FFFDFB;
+      background-image: linear-gradient(to right, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 5%);
+      overflow: hidden;
+      border: 1px solid #f0e6e6;
+      box-sizing: border-box;
     }
 
-    .page-face {
-      position: absolute;
+    .page.--left {
+      border-radius: 6px 0 0 6px;
+      background-image: linear-gradient(to left, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0) 6%);
+    }
+
+    .page.--right {
+      border-radius: 0 6px 6px 0;
+      background-image: linear-gradient(to right, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0) 6%);
+    }
+
+    /* Hard cover page styles */
+    .page-cover {
+      background: linear-gradient(135deg, #FAF7F5 0%, #F3D7D7 100%);
+      color: #333;
+      border: 2px solid #D88383;
+    }
+
+    /* Inner page picture positioning */
+    .page-content {
       width: 100%;
       height: 100%;
-      top: 0;
-      left: 0;
-      backface-visibility: hidden;
-      border-radius: 0 8px 8px 0;
-      overflow: hidden;
-      background: #334155;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
+      justify-content: space-between;
       padding: 20px;
-      text-align: center;
-      border: 1px solid rgba(255,255,255,0.2);
+      position: relative;
+      box-sizing: border-box;
     }
 
-    .page-face.back {
-      transform: rotateY(180deg);
-      border-radius: 8px 0 0 8px;
-    }
-
-    .page-face img {
+    .page-image-container {
       width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    /* Controls */
-    .controls {
-      margin-bottom: 30px;
+      height: calc(100% - 30px);
       display: flex;
-      gap: 15px;
       align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #fdfbfb;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.03);
     }
 
-    .nav-btn {
-      background: #1e293b;
-      color: white;
-      border: 1px solid #475569;
-      padding: 10px 20px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .nav-btn:hover {
-      background: #334155;
+    .page-image-container img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      user-select: none;
+      -webkit-user-drag: none;
     }
 
     .page-number {
-      color: #94a3b8;
-    }
-
-    .page.flipped {
-      transform: rotateY(-180deg);
+      position: absolute;
+      bottom: 10px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 0.75rem;
+      color: #888888;
+      font-family: Georgia, serif;
     }
   </style>
 </head>
-<body>
+<body class="p-4 md:p-8 flex flex-col items-center justify-center min-h-screen">
 
-  <header>
-    <h1>3D Interactive Flipbook</h1>
-    <label for="imageInput" class="upload-btn">Upload Images</label>
-    <input type="file" id="imageInput" multiple accept="image/*">
-  </header>
+  <div id="flipbook-wrapper" class="w-full max-w-5xl bg-white rounded-2xl shadow-xl p-4 md:p-8 transition-all duration-300">
+    
+    <!-- Header Section -->
+    <header class="text-center mb-6 relative">
+      <span class="text-xs uppercase tracking-widest text-roseGold font-bold mb-1 block">3D Interactive Album</span>
+      <h1 class="text-2xl md:text-3xl font-serif text-gray-800 font-bold">Custom Photo Flipbook</h1>
+      <p class="text-sm text-gray-500 mt-1">Upload your images to build a personalized 3D flipbook</p>
+      
+      <!-- Upload Button -->
+      <div class="mt-4">
+        <label for="image-upload" class="inline-flex items-center gap-2 bg-roseGold hover:bg-roseDark text-white px-5 py-2.5 rounded-lg shadow-md transition-all cursor-pointer text-sm font-semibold">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>Upload Images</span>
+        </label>
+        <input type="file" id="image-upload" multiple accept="image/*" class="hidden" />
+      </div>
+    </header>
 
-  <div class="viewport">
-    <div class="book" id="book">
-      <!-- Default Demo Page -->
-      <div class="page" id="demoPage" style="z-index: 1;">
-        <div class="page-face front">
-          <h2 style="margin-bottom: 15px;">📖 Welcome!</h2>
-          <p>Click <b>"Upload Images"</b> above to view your own pictures in 3D flipbook style.</p>
+    <!-- Flipbook Stage -->
+    <div class="flipbook-stage mb-6 relative" id="stage-container">
+      <div id="flipbook" class="stpageflip-container">
+        
+        <!-- DEFAULT FRONT COVER -->
+        <div class="page page-cover">
+          <div class="page-content text-center flex flex-col justify-between items-center h-full py-8">
+            <div class="mt-4">
+              <span class="text-3xl text-roseGold"><i class="fa-solid fa-book-open"></i></span>
+              <p class="text-xs uppercase tracking-widest text-roseDark font-bold mt-2">Personalized Album</p>
+            </div>
+            <div class="my-auto px-4">
+              <h2 class="font-serif text-2xl md:text-3xl font-bold text-gray-800 leading-tight mb-3">Welcome to Your 3D Flipbook</h2>
+              <div class="w-16 h-0.5 bg-roseGold mx-auto my-3"></div>
+              <p class="text-sm font-serif text-gray-600 italic">Click "Upload Images" above to see your photos!</p>
+            </div>
+            <div class="mb-4">
+              <p class="text-xs text-gray-500 italic">Click or drag corner to turn page ➔</p>
+            </div>
+          </div>
         </div>
-        <div class="page-face back">
-          <h2>Back Cover</h2>
+
+        <!-- DEFAULT BACK COVER -->
+        <div class="page page-cover">
+          <div class="page-content text-center flex flex-col justify-between items-center h-full py-8">
+            <div class="my-auto">
+              <span class="text-3xl text-roseGold"><i class="fa-solid fa-heart"></i></span>
+              <p class="font-serif text-lg font-bold text-gray-800 mt-2">The End</p>
+              <p class="text-xs text-roseDark font-semibold">Upload photos to replace this preview</p>
+            </div>
+          </div>
         </div>
+
       </div>
     </div>
-  </div>
 
-  <div class="controls">
-    <button class="nav-btn" id="prevBtn">Previous</button>
-    <span class="page-number" id="pageCounter">Page 0 of 0</span>
-    <button class="nav-btn" id="nextBtn">Next</button>
+    <!-- Controls Toolbar -->
+    <div class="flex flex-wrap items-center justify-between gap-3 bg-warmCream p-3 rounded-xl border border-dustyPink/40">
+      
+      <!-- Page Navigation Controls -->
+      <div class="flex items-center gap-1 sm:gap-2">
+        <button id="btn-first" title="First Page" class="p-2.5 px-3 bg-white hover:bg-roseGold hover:text-white text-gray-700 rounded-lg shadow-sm border border-gray-200 transition-colors text-sm">
+          <i class="fa-solid fa-backward-step"></i>
+        </button>
+        <button id="btn-prev" title="Previous Page" class="p-2.5 px-3 bg-white hover:bg-roseGold hover:text-white text-gray-700 rounded-lg shadow-sm border border-gray-200 transition-colors text-sm">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <span class="text-xs md:text-sm font-serif px-2 text-gray-600 font-semibold select-none min-w-[90px] text-center" id="page-indicator">
+          Page 1 of 2
+        </span>
+        <button id="btn-next" title="Next Page" class="p-2.5 px-3 bg-white hover:bg-roseGold hover:text-white text-gray-700 rounded-lg shadow-sm border border-gray-200 transition-colors text-sm">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+        <button id="btn-last" title="Last Page" class="p-2.5 px-3 bg-white hover:bg-roseGold hover:text-white text-gray-700 rounded-lg shadow-sm border border-gray-200 transition-colors text-sm">
+          <i class="fa-solid fa-forward-step"></i>
+        </button>
+      </div>
+
+      <!-- Secondary Action Controls -->
+      <div class="flex items-center gap-2">
+        <button id="btn-autoplay" title="Toggle Auto Play" class="flex items-center gap-1.5 p-2.5 px-3 bg-white hover:bg-roseGold hover:text-white text-gray-700 rounded-lg shadow-sm border border-gray-200 transition-colors text-xs font-semibold">
+          <i id="autoplay-icon" class="fa-solid fa-play"></i>
+          <span class="hidden sm:inline">Auto</span>
+        </button>
+
+        <button id="btn-sound" title="Toggle Sound" class="p-2.5 px-3 bg-white hover:bg-roseGold hover:text-white text-roseGold rounded-lg shadow-sm border border-gray-200 transition-colors text-sm">
+          <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+        </button>
+
+        <button id="btn-fullscreen" title="Toggle Fullscreen" class="p-2.5 px-3 bg-white hover:bg-roseGold hover:text-white text-gray-700 rounded-lg shadow-sm border border-gray-200 transition-colors text-sm">
+          <i class="fa-solid fa-expand"></i>
+        </button>
+      </div>
+    </div>
+
   </div>
 
   <script>
-    const imageInput = document.getElementById('imageInput');
-    const book = document.getElementById('book');
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    const pageCounter = document.getElementById('pageCounter');
+    let pageFlip = null;
+    let autoPlayInterval = null;
+    let soundEnabled = true;
 
-    let pages = [];
-    let currentPageIndex = 0;
+    // Web Audio Synthesizer for Paper Page Turn Sound
+    function playPageTurnSound() {
+      if (!soundEnabled) return;
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
 
-    imageInput.addEventListener('change', (e) => {
+        const bufferSize = ctx.sampleRate * 0.15;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1000, ctx.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.12);
+        filter.Q.value = 1.5;
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.01, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.14);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+
+        noise.start();
+        noise.stop(ctx.currentTime + 0.15);
+      } catch (e) {
+        // Fallback
+      }
+    }
+
+    function getBookDimensions() {
+      const screenWidth = window.innerWidth;
+      if (screenWidth < 640) {
+        return { width: 280, height: 400 };
+      } else if (screenWidth < 1024) {
+        return { width: 340, height: 480 };
+      } else {
+        return { width: 400, height: 540 };
+      }
+    }
+
+    function initFlipbook() {
+      const container = document.getElementById('flipbook');
+      const dims = getBookDimensions();
+
+      if (pageFlip) {
+        pageFlip.destroy();
+      }
+
+      pageFlip = new St.PageFlip(container, {
+        width: dims.width,
+        height: dims.height,
+        size: "fixed",
+        minWidth: 260,
+        maxWidth: 500,
+        minHeight: 380,
+        maxHeight: 650,
+        drawShadow: true,
+        showCover: true,
+        usePortrait: window.innerWidth < 640,
+        maxShadowOpacity: 0.25,
+        flippingTime: 800
+      });
+
+      pageFlip.loadFromHTML(document.querySelectorAll('.page'));
+
+      pageFlip.on('flip', (e) => {
+        playPageTurnSound();
+        updateIndicator();
+      });
+
+      updateIndicator();
+    }
+
+    function updateIndicator() {
+      if (!pageFlip) return;
+      const current = pageFlip.getCurrentPageIndex() + 1;
+      const total = pageFlip.getPageCount();
+      document.getElementById('page-indicator').innerText = `Page ${current} of ${total}`;
+    }
+
+    // Dynamic Image Upload Handling
+    document.getElementById('image-upload').addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
       if (files.length === 0) return;
 
-      book.innerHTML = '';
-      pages = [];
-      currentPageIndex = 0;
+      const flipbookContainer = document.getElementById('flipbook');
+      flipbookContainer.innerHTML = ''; // Clear existing pages
 
-      const imageUrls = files.map(file => URL.createObjectURL(file));
+      // Front Cover
+      const coverPage = document.createElement('div');
+      coverPage.className = 'page page-cover';
+      coverPage.innerHTML = `
+        <div class="page-content text-center flex flex-col justify-between items-center h-full py-8">
+          <div class="mt-4">
+            <span class="text-3xl text-roseGold"><i class="fa-solid fa-images"></i></span>
+            <p class="text-xs uppercase tracking-widest text-roseDark font-bold mt-2">Custom Photo Album</p>
+          </div>
+          <div class="my-auto px-4">
+            <h2 class="font-serif text-2xl font-bold text-gray-800 leading-tight mb-2">My Photo Album</h2>
+            <div class="w-16 h-0.5 bg-roseGold mx-auto my-3"></div>
+            <p class="text-sm font-serif text-gray-600 italic">${files.length} Photos Uploaded</p>
+          </div>
+          <div class="mb-4">
+            <p class="text-xs text-gray-500 italic">Turn page to view photos ➔</p>
+          </div>
+        </div>
+      `;
+      flipbookContainer.appendChild(coverPage);
 
-      for (let i = 0; i < imageUrls.length; i += 2) {
-        const frontImg = imageUrls[i];
-        const backImg = imageUrls[i + 1] || null;
+      // Add uploaded photo pages
+      files.forEach((file, index) => {
+        const page = document.createElement('div');
+        page.className = 'page';
+        const imgUrl = URL.createObjectURL(file);
 
-        const pageEl = document.createElement('div');
-        pageEl.classList.add('page');
-        
-        const frontFace = document.createElement('div');
-        frontFace.classList.add('page-face', 'front');
-        const imgFront = document.createElement('img');
-        imgFront.src = frontImg;
-        frontFace.appendChild(imgFront);
+        page.innerHTML = `
+          <div class="page-content">
+            <div class="page-image-container">
+              <img src="${imgUrl}" alt="Uploaded Photo ${index + 1}" />
+            </div>
+            <div class="page-number">- ${index + 1} -</div>
+          </div>
+        `;
+        flipbookContainer.appendChild(page);
+      });
 
-        const backFace = document.createElement('div');
-        backFace.classList.add('page-face', 'back');
-        if (backImg) {
-          const imgBack = document.createElement('img');
-          imgBack.src = backImg;
-          backFace.appendChild(imgBack);
-        }
+      // Back Cover
+      const backCoverPage = document.createElement('div');
+      backCoverPage.className = 'page page-cover';
+      backCoverPage.innerHTML = `
+        <div class="page-content text-center flex flex-col justify-between items-center h-full py-8">
+          <div class="my-auto">
+            <span class="text-3xl text-roseGold"><i class="fa-solid fa-heart"></i></span>
+            <p class="font-serif text-xl font-bold text-gray-800 mt-2">The End</p>
+            <p class="text-xs text-roseDark font-semibold mt-1">Thank You for Viewing</p>
+          </div>
+        </div>
+      `;
+      flipbookContainer.appendChild(backCoverPage);
 
-        pageEl.appendChild(frontFace);
-        pageEl.appendChild(backFace);
-        book.appendChild(pageEl);
-
-        pages.push(pageEl);
-      }
-
-      updatePageZIndex();
-      updateCounter();
+      // Re-initialize PageFlip Library with new content
+      initFlipbook();
     });
 
-    function updatePageZIndex() {
-      pages.forEach((page, index) => {
-        if (index < currentPageIndex) {
-          page.classList.add('flipped');
-          page.style.zIndex = index;
+    document.addEventListener('DOMContentLoaded', () => {
+      initFlipbook();
+
+      // Control handlers
+      document.getElementById('btn-next').addEventListener('click', () => {
+        if (pageFlip) pageFlip.flipNext();
+      });
+
+      document.getElementById('btn-prev').addEventListener('click', () => {
+        if (pageFlip) pageFlip.flipPrev();
+      });
+
+      document.getElementById('btn-first').addEventListener('click', () => {
+        if (pageFlip) pageFlip.flip(0);
+      });
+
+      document.getElementById('btn-last').addEventListener('click', () => {
+        if (pageFlip) pageFlip.flip(pageFlip.getPageCount() - 1);
+      });
+
+      // Auto Play Toggle
+      const autoBtn = document.getElementById('btn-autoplay');
+      const autoIcon = document.getElementById('autoplay-icon');
+      autoBtn.addEventListener('click', () => {
+        if (autoPlayInterval) {
+          clearInterval(autoPlayInterval);
+          autoPlayInterval = null;
+          autoIcon.className = 'fa-solid fa-play';
+          autoBtn.classList.remove('bg-roseGold', 'text-white');
+          autoBtn.classList.add('bg-white', 'text-gray-700');
         } else {
-          page.classList.remove('flipped');
-          page.style.zIndex = pages.length - index;
+          autoIcon.className = 'fa-solid fa-pause';
+          autoBtn.classList.remove('bg-white', 'text-gray-700');
+          autoBtn.classList.add('bg-roseGold', 'text-white');
+          autoPlayInterval = setInterval(() => {
+            if (pageFlip) {
+              if (pageFlip.getCurrentPageIndex() >= pageFlip.getPageCount() - 1) {
+                pageFlip.flip(0);
+              } else {
+                pageFlip.flipNext();
+              }
+            }
+          }, 3500);
         }
       });
-    }
 
-    function updateCounter() {
-      pageCounter.textContent = `Page ${currentPageIndex} of ${pages.length}`;
-    }
+      // Sound Toggle
+      const soundBtn = document.getElementById('btn-sound');
+      const soundIcon = document.getElementById('sound-icon');
+      soundBtn.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        if (soundEnabled) {
+          soundIcon.className = 'fa-solid fa-volume-high';
+          soundBtn.classList.add('text-roseGold');
+          soundBtn.classList.remove('text-gray-400');
+        } else {
+          soundIcon.className = 'fa-solid fa-volume-xmark';
+          soundBtn.classList.remove('text-roseGold');
+          soundBtn.classList.add('text-gray-400');
+        }
+      });
 
-    nextBtn.addEventListener('click', () => {
-      if (currentPageIndex < pages.length) {
-        currentPageIndex++;
-        updatePageZIndex();
-        updateCounter();
-      }
-    });
+      // Fullscreen Toggle
+      document.getElementById('btn-fullscreen').addEventListener('click', () => {
+        const stage = document.getElementById('flipbook-wrapper');
+        if (!document.fullscreenElement) {
+          if (stage.requestFullscreen) {
+            stage.requestFullscreen();
+          } else if (stage.webkitRequestFullscreen) {
+            stage.webkitRequestFullscreen();
+          }
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
+        }
+      });
 
-    prevBtn.addEventListener('click', () => {
-      if (currentPageIndex > 0) {
-        currentPageIndex--;
-        updatePageZIndex();
-        updateCounter();
-      }
+      // Window Resize Listener
+      let resizeTimer;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          if (pageFlip) {
+            initFlipbook();
+          }
+        }, 250);
+      });
     });
   </script>
-
 </body>
 </html>
