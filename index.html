@@ -38,7 +38,6 @@
       overflow-x: hidden;
     }
 
-    /* Flipbook Container styling */
     .flipbook-stage {
       perspective: 1500px;
       display: flex;
@@ -53,7 +52,6 @@
       border-radius: 8px;
     }
 
-    /* Individual Page Styling */
     .page {
       background-color: #FFFDFB;
       background-image: linear-gradient(to right, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 5%);
@@ -72,14 +70,12 @@
       background-image: linear-gradient(to right, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0) 6%);
     }
 
-    /* Hard cover page styles */
     .page-cover {
       background: linear-gradient(135deg, #FAF7F5 0%, #F3D7D7 100%);
       color: #333;
       border: 2px solid #D88383;
     }
 
-    /* Inner page picture positioning */
     .page-content {
       width: 100%;
       height: 100%;
@@ -137,7 +133,7 @@
       <div class="mt-4">
         <label for="image-upload" class="inline-flex items-center gap-2 bg-roseGold hover:bg-roseDark text-white px-5 py-2.5 rounded-lg shadow-md transition-all cursor-pointer text-sm font-semibold">
           <i class="fa-solid fa-cloud-arrow-up"></i>
-          <span>Upload Images</span>
+          <span id="upload-label-text">Upload Images</span>
         </label>
         <input type="file" id="image-upload" multiple accept="image/*" class="hidden" />
       </div>
@@ -145,37 +141,39 @@
 
     <!-- Flipbook Stage -->
     <div class="flipbook-stage mb-6 relative" id="stage-container">
-      <div id="flipbook" class="stpageflip-container">
-        
-        <!-- DEFAULT FRONT COVER -->
-        <div class="page page-cover">
-          <div class="page-content text-center flex flex-col justify-between items-center h-full py-8">
-            <div class="mt-4">
-              <span class="text-3xl text-roseGold"><i class="fa-solid fa-book-open"></i></span>
-              <p class="text-xs uppercase tracking-widest text-roseDark font-bold mt-2">Personalized Album</p>
-            </div>
-            <div class="my-auto px-4">
-              <h2 class="font-serif text-2xl md:text-3xl font-bold text-gray-800 leading-tight mb-3">Welcome to Your 3D Flipbook</h2>
-              <div class="w-16 h-0.5 bg-roseGold mx-auto my-3"></div>
-              <p class="text-sm font-serif text-gray-600 italic">Click "Upload Images" above to see your photos!</p>
-            </div>
-            <div class="mb-4">
-              <p class="text-xs text-gray-500 italic">Click or drag corner to turn page ➔</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- DEFAULT BACK COVER -->
-        <div class="page page-cover">
-          <div class="page-content text-center flex flex-col justify-between items-center h-full py-8">
-            <div class="my-auto">
-              <span class="text-3xl text-roseGold"><i class="fa-solid fa-heart"></i></span>
-              <p class="font-serif text-lg font-bold text-gray-800 mt-2">The End</p>
-              <p class="text-xs text-roseDark font-semibold">Upload photos to replace this preview</p>
+      <div id="flipbook-container" class="w-full flex justify-center">
+        <div id="flipbook" class="stpageflip-container">
+          
+          <!-- DEFAULT FRONT COVER -->
+          <div class="page page-cover">
+            <div class="page-content text-center flex flex-col justify-between items-center h-full py-8">
+              <div class="mt-4">
+                <span class="text-3xl text-roseGold"><i class="fa-solid fa-book-open"></i></span>
+                <p class="text-xs uppercase tracking-widest text-roseDark font-bold mt-2">Personalized Album</p>
+              </div>
+              <div class="my-auto px-4">
+                <h2 class="font-serif text-2xl md:text-3xl font-bold text-gray-800 leading-tight mb-3">Welcome to Your 3D Flipbook</h2>
+                <div class="w-16 h-0.5 bg-roseGold mx-auto my-3"></div>
+                <p class="text-sm font-serif text-gray-600 italic">Click "Upload Images" above to see your photos!</p>
+              </div>
+              <div class="mb-4">
+                <p class="text-xs text-gray-500 italic">Click or drag corner to turn page ➔</p>
+              </div>
             </div>
           </div>
-        </div>
 
+          <!-- DEFAULT BACK COVER -->
+          <div class="page page-cover">
+            <div class="page-content text-center flex flex-col justify-between items-center h-full py-8">
+              <div class="my-auto">
+                <span class="text-3xl text-roseGold"><i class="fa-solid fa-heart"></i></span>
+                <p class="font-serif text-lg font-bold text-gray-800 mt-2">The End</p>
+                <p class="text-xs text-roseDark font-semibold">Upload photos to replace this preview</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
 
@@ -225,7 +223,6 @@
     let autoPlayInterval = null;
     let soundEnabled = true;
 
-    // Web Audio Synthesizer for Paper Page Turn Sound
     function playPageTurnSound() {
       if (!soundEnabled) return;
       try {
@@ -260,9 +257,7 @@
 
         noise.start();
         noise.stop(ctx.currentTime + 0.15);
-      } catch (e) {
-        // Fallback
-      }
+      } catch (e) {}
     }
 
     function getBookDimensions() {
@@ -277,14 +272,17 @@
     }
 
     function initFlipbook() {
-      const container = document.getElementById('flipbook');
+      const targetElement = document.getElementById('flipbook');
+      if (!targetElement) return;
+
       const dims = getBookDimensions();
 
       if (pageFlip) {
-        pageFlip.destroy();
+        try { pageFlip.destroy(); } catch (err) {}
+        pageFlip = null;
       }
 
-      pageFlip = new St.PageFlip(container, {
+      pageFlip = new St.PageFlip(targetElement, {
         width: dims.width,
         height: dims.height,
         size: "fixed",
@@ -299,9 +297,12 @@
         flippingTime: 800
       });
 
-      pageFlip.loadFromHTML(document.querySelectorAll('.page'));
+      const pages = targetElement.querySelectorAll('.page');
+      if (pages.length > 0) {
+        pageFlip.loadFromHTML(pages);
+      }
 
-      pageFlip.on('flip', (e) => {
+      pageFlip.on('flip', () => {
         playPageTurnSound();
         updateIndicator();
       });
@@ -316,15 +317,35 @@
       document.getElementById('page-indicator').innerText = `Page ${current} of ${total}`;
     }
 
-    // Dynamic Image Upload Handling
-    document.getElementById('image-upload').addEventListener('change', (e) => {
+    // Helper to preload image URLs before rendering StPageFlip
+    function preloadImages(urls) {
+      return Promise.all(urls.map(url => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(url);
+          img.onerror = () => resolve(url);
+          img.src = url;
+        });
+      }));
+    }
+
+    // Upload Handler
+    document.getElementById('image-upload').addEventListener('change', async (e) => {
       const files = Array.from(e.target.files);
       if (files.length === 0) return;
 
-      const flipbookContainer = document.getElementById('flipbook');
-      flipbookContainer.innerHTML = ''; // Clear existing pages
+      const labelText = document.getElementById('upload-label-text');
+      labelText.innerText = "Processing...";
 
-      // Front Cover
+      const imageUrls = files.map(file => URL.createObjectURL(file));
+      await preloadImages(imageUrls);
+
+      // Re-create DOM wrapper to wipe out previous library instance elements
+      const parentContainer = document.getElementById('flipbook-container');
+      parentContainer.innerHTML = '<div id="flipbook" class="stpageflip-container"></div>';
+      const flipbookContainer = document.getElementById('flipbook');
+
+      // Add Front Cover
       const coverPage = document.createElement('div');
       coverPage.className = 'page page-cover';
       coverPage.innerHTML = `
@@ -336,7 +357,7 @@
           <div class="my-auto px-4">
             <h2 class="font-serif text-2xl font-bold text-gray-800 leading-tight mb-2">My Photo Album</h2>
             <div class="w-16 h-0.5 bg-roseGold mx-auto my-3"></div>
-            <p class="text-sm font-serif text-gray-600 italic">${files.length} Photos Uploaded</p>
+            <p class="text-sm font-serif text-gray-600 italic">${files.length} Photos Loaded</p>
           </div>
           <div class="mb-4">
             <p class="text-xs text-gray-500 italic">Turn page to view photos ➔</p>
@@ -346,15 +367,13 @@
       flipbookContainer.appendChild(coverPage);
 
       // Add uploaded photo pages
-      files.forEach((file, index) => {
+      imageUrls.forEach((url, index) => {
         const page = document.createElement('div');
         page.className = 'page';
-        const imgUrl = URL.createObjectURL(file);
-
         page.innerHTML = `
           <div class="page-content">
             <div class="page-image-container">
-              <img src="${imgUrl}" alt="Uploaded Photo ${index + 1}" />
+              <img src="${url}" alt="Uploaded Photo ${index + 1}" />
             </div>
             <div class="page-number">- ${index + 1} -</div>
           </div>
@@ -362,7 +381,7 @@
         flipbookContainer.appendChild(page);
       });
 
-      // Back Cover
+      // Add Back Cover
       const backCoverPage = document.createElement('div');
       backCoverPage.className = 'page page-cover';
       backCoverPage.innerHTML = `
@@ -376,14 +395,14 @@
       `;
       flipbookContainer.appendChild(backCoverPage);
 
-      // Re-initialize PageFlip Library with new content
+      // Initialize flipbook
       initFlipbook();
+      labelText.innerText = "Upload Images";
     });
 
     document.addEventListener('DOMContentLoaded', () => {
       initFlipbook();
 
-      // Control handlers
       document.getElementById('btn-next').addEventListener('click', () => {
         if (pageFlip) pageFlip.flipNext();
       });
@@ -458,7 +477,6 @@
         }
       });
 
-      // Window Resize Listener
       let resizeTimer;
       window.addEventListener('resize', () => {
         clearTimeout(resizeTimer);
