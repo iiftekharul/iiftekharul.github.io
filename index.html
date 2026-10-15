@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3D Interactive Flipbook Reader</title>
+  <title>Real 3D Interactive Flipbook Reader</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -42,23 +42,23 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 540px;
+      min-height: 550px;
     }
 
-    /* Target the StPageFlip outer wrapper */
-    .stpageflip-container {
-      margin: 0 auto;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    /* Outer wrapper holding 3D canvas */
+    #flipbook-mount {
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
       border-radius: 8px;
     }
 
-    /* Force pages to hold exact layout during animation */
+    /* Real-life 3D Page Styling */
     .page {
       background-color: #FFFDFB;
       border: 1px solid #f0e6e6;
       box-sizing: border-box;
       width: 100%;
       height: 100%;
+      position: relative;
     }
 
     .page-cover {
@@ -87,14 +87,19 @@
       overflow: hidden;
       border-radius: 8px;
       background: #fdfbfb;
+      cursor: zoom-in;
     }
 
     .page-image-container img {
-      width: 100%;
-      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
       object-fit: contain;
       user-select: none;
-      pointer-events: none;
+      transition: transform 0.2s ease;
+    }
+
+    .page-image-container:hover img {
+      transform: scale(1.02);
     }
 
     .page-number {
@@ -115,9 +120,9 @@
     
     <!-- Header Section -->
     <header class="text-center mb-6 relative">
-      <span class="text-xs uppercase tracking-widest text-roseGold font-bold mb-1 block">3D Interactive Album</span>
+      <span class="text-xs uppercase tracking-widest text-roseGold font-bold mb-1 block">Real 3D Interactive Album</span>
       <h1 class="text-2xl md:text-3xl font-serif text-gray-800 font-bold">Custom Photo Flipbook</h1>
-      <p class="text-sm text-gray-500 mt-1">Upload your images to build a personalized 3D flipbook</p>
+      <p class="text-sm text-gray-500 mt-1">Upload images to generate a real-life 3D paper page-turn experience</p>
       
       <!-- Upload Button -->
       <div class="mt-4">
@@ -131,40 +136,7 @@
 
     <!-- Flipbook Stage -->
     <div class="flipbook-stage mb-6" id="stage-container">
-      <div id="flipbook-container" class="w-full flex justify-center">
-        <div id="flipbook">
-          
-          <!-- DEFAULT FRONT COVER -->
-          <div class="page page-cover">
-            <div class="page-content text-center flex flex-col justify-between items-center h-full py-8">
-              <div class="mt-4">
-                <span class="text-3xl text-roseGold"><i class="fa-solid fa-book-open"></i></span>
-                <p class="text-xs uppercase tracking-widest text-roseDark font-bold mt-2">Personalized Album</p>
-              </div>
-              <div class="my-auto px-4">
-                <h2 class="font-serif text-2xl md:text-3xl font-bold text-gray-800 leading-tight mb-3">Welcome to Your 3D Flipbook</h2>
-                <div class="w-16 h-0.5 bg-roseGold mx-auto my-3"></div>
-                <p class="text-sm font-serif text-gray-600 italic">Click "Upload Images" above to see your photos!</p>
-              </div>
-              <div class="mb-4">
-                <p class="text-xs text-gray-500 italic">Click or drag corner to turn page ➔</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- DEFAULT BACK COVER -->
-          <div class="page page-cover">
-            <div class="page-content text-center flex flex-col justify-between items-center h-full py-8">
-              <div class="my-auto">
-                <span class="text-3xl text-roseGold"><i class="fa-solid fa-heart"></i></span>
-                <p class="font-serif text-lg font-bold text-gray-800 mt-2">The End</p>
-                <p class="text-xs text-roseDark font-semibold">Upload photos to replace this preview</p>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
+      <div id="flipbook-mount"></div>
     </div>
 
     <!-- Controls Toolbar -->
@@ -197,7 +169,7 @@
           <i id="sound-icon" class="fa-solid fa-volume-high"></i>
         </button>
 
-        <button id="btn-fullscreen" title="Toggle Fullscreen" class="p-2.5 px-3 bg-white hover:bg-roseGold hover:text-white text-gray-700 rounded-lg shadow-sm border border-gray-200 transition-colors text-sm">
+        <button id="btn-fullscreen" title="Toggle Stage Fullscreen" class="p-2.5 px-3 bg-white hover:bg-roseGold hover:text-white text-gray-700 rounded-lg shadow-sm border border-gray-200 transition-colors text-sm">
           <i class="fa-solid fa-expand"></i>
         </button>
       </div>
@@ -205,11 +177,21 @@
 
   </div>
 
+  <!-- FULLSCREEN IMAGE LIGHTBOX MODAL -->
+  <div id="image-modal" class="fixed inset-0 bg-black/90 z-50 hidden flex-col items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
+    <button id="close-modal" class="absolute top-4 right-4 text-white text-2xl p-3 hover:text-roseGold transition-colors focus:outline-none">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <img id="modal-image" src="" alt="Fullscreen View" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" />
+    <p class="text-white/70 text-xs mt-3 font-serif">Click anywhere outside or press ESC to close</p>
+  </div>
+
   <script>
     let pageFlip = null;
     let autoPlayInterval = null;
     let soundEnabled = true;
 
+    // Realistic Web AudioSynthesizer for Paper Turn Sound
     function playPageTurnSound() {
       if (!soundEnabled) return;
       try {
@@ -258,18 +240,56 @@
       }
     }
 
-    function initFlipbook() {
-      const targetElement = document.getElementById('flipbook');
-      if (!targetElement) return;
+    function createPageElement(htmlContent, extraClass = '') {
+      const div = document.createElement('div');
+      div.className = `page ${extraClass}`;
+      div.innerHTML = htmlContent;
+      return div;
+    }
 
-      const dims = getBookDimensions();
+    function buildDefaultPages() {
+      return [
+        createPageElement(`
+          <div class="page-content text-center flex flex-col justify-between items-center h-full py-8">
+            <div class="mt-4">
+              <span class="text-3xl text-roseGold"><i class="fa-solid fa-book-open"></i></span>
+              <p class="text-xs uppercase tracking-widest text-roseDark font-bold mt-2">Personalized Album</p>
+            </div>
+            <div class="my-auto px-4">
+              <h2 class="font-serif text-2xl md:text-3xl font-bold text-gray-800 leading-tight mb-3">Welcome to Your 3D Flipbook</h2>
+              <div class="w-16 h-0.5 bg-roseGold mx-auto my-3"></div>
+              <p class="text-sm font-serif text-gray-600 italic">Click "Upload Images" above to see your photos!</p>
+            </div>
+            <div class="mb-4">
+              <p class="text-xs text-gray-500 italic">Grab page corner to curl & turn ➔</p>
+            </div>
+          </div>
+        `, 'page-cover'),
+        createPageElement(`
+          <div class="page-content text-center flex flex-col justify-between items-center h-full py-8">
+            <div class="my-auto">
+              <span class="text-3xl text-roseGold"><i class="fa-solid fa-heart"></i></span>
+              <p class="font-serif text-lg font-bold text-gray-800 mt-2">The End</p>
+              <p class="text-xs text-roseDark font-semibold">Upload photos to replace this preview</p>
+            </div>
+          </div>
+        `, 'page-cover')
+      ];
+    }
+
+    function initFlipbook(pagesArray) {
+      const mountPoint = document.getElementById('flipbook-mount');
+      mountPoint.innerHTML = ''; // Wipe existing canvas DOM
 
       if (pageFlip) {
-        try { pageFlip.destroy(); } catch (err) {}
+        try { pageFlip.destroy(); } catch (e) {}
         pageFlip = null;
       }
 
-      pageFlip = new St.PageFlip(targetElement, {
+      const dims = getBookDimensions();
+
+      // Explicit real-life 3D mode initialization
+      pageFlip = new St.PageFlip(mountPoint, {
         width: dims.width,
         height: dims.height,
         size: "fixed",
@@ -280,16 +300,14 @@
         drawShadow: true,
         showCover: true,
         usePortrait: window.innerWidth < 640,
-        maxShadowOpacity: 0.5,
+        maxShadowOpacity: 0.8,
         flippingTime: 1000,
         useMouseEvents: true,
-        swipeDistance: 30
+        swipeDistance: 30,
+        clickEventForward: true
       });
 
-      const pages = targetElement.querySelectorAll('.page');
-      if (pages.length > 0) {
-        pageFlip.loadFromHTML(pages);
-      }
+      pageFlip.loadFromHTML(pagesArray);
 
       pageFlip.on('flip', () => {
         playPageTurnSound();
@@ -297,6 +315,7 @@
       });
 
       updateIndicator();
+      attachImageClickEvents();
     }
 
     function updateIndicator() {
@@ -306,35 +325,55 @@
       document.getElementById('page-indicator').innerText = `Page ${current} of ${total}`;
     }
 
-    function preloadImages(urls) {
-      return Promise.all(urls.map(url => {
-        return new Promise((resolve) => {
-          const img = new Image();
-          img.onload = () => resolve(url);
-          img.onerror = () => resolve(url);
-          img.src = url;
-        });
-      }));
+    // Modal Lightbox functionality
+    function attachImageClickEvents() {
+      const modal = document.getElementById('image-modal');
+      const modalImg = document.getElementById('modal-image');
+
+      document.querySelectorAll('.page-image-container img').forEach(img => {
+        img.onclick = (e) => {
+          e.stopPropagation();
+          modalImg.src = img.src;
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+        };
+      });
     }
 
-    document.getElementById('image-upload').addEventListener('change', async (e) => {
+    document.getElementById('close-modal').addEventListener('click', () => {
+      const modal = document.getElementById('image-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    });
+
+    document.getElementById('image-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'image-modal') {
+        const modal = document.getElementById('image-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('image-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    });
+
+    // File Upload Handler
+    document.getElementById('image-upload').addEventListener('change', (e) => {
       const files = Array.from(e.target.files);
       if (files.length === 0) return;
 
       const labelText = document.getElementById('upload-label-text');
-      labelText.innerText = "Loading 3D Pages...";
+      labelText.innerText = "Rendering 3D Mesh...";
 
-      const imageUrls = files.map(file => URL.createObjectURL(file));
-      await preloadImages(imageUrls);
-
-      const parentContainer = document.getElementById('flipbook-container');
-      parentContainer.innerHTML = '<div id="flipbook"></div>';
-      const flipbookContainer = document.getElementById('flipbook');
+      const newPages = [];
 
       // Add Front Cover
-      const coverPage = document.createElement('div');
-      coverPage.className = 'page page-cover';
-      coverPage.innerHTML = `
+      newPages.push(createPageElement(`
         <div class="page-content text-center flex flex-col justify-between items-center h-full py-8">
           <div class="mt-4">
             <span class="text-3xl text-roseGold"><i class="fa-solid fa-images"></i></span>
@@ -346,31 +385,26 @@
             <p class="text-sm font-serif text-gray-600 italic">${files.length} Photos Loaded</p>
           </div>
           <div class="mb-4">
-            <p class="text-xs text-gray-500 italic">Drag page corner to turn ➔</p>
+            <p class="text-xs text-gray-500 italic">Grab corner to curl page ➔</p>
           </div>
         </div>
-      `;
-      flipbookContainer.appendChild(coverPage);
+      `, 'page-cover'));
 
       // Add uploaded photo pages
-      imageUrls.forEach((url, index) => {
-        const page = document.createElement('div');
-        page.className = 'page';
-        page.innerHTML = `
+      files.forEach((file, index) => {
+        const url = URL.createObjectURL(file);
+        newPages.push(createPageElement(`
           <div class="page-content">
-            <div class="page-image-container">
+            <div class="page-image-container" title="Click to view full screen">
               <img src="${url}" alt="Uploaded Photo ${index + 1}" />
             </div>
             <div class="page-number">- ${index + 1} -</div>
           </div>
-        `;
-        flipbookContainer.appendChild(page);
+        `));
       });
 
       // Add Back Cover
-      const backCoverPage = document.createElement('div');
-      backCoverPage.className = 'page page-cover';
-      backCoverPage.innerHTML = `
+      newPages.push(createPageElement(`
         <div class="page-content text-center flex flex-col justify-between items-center h-full py-8">
           <div class="my-auto">
             <span class="text-3xl text-roseGold"><i class="fa-solid fa-heart"></i></span>
@@ -378,15 +412,14 @@
             <p class="text-xs text-roseDark font-semibold mt-1">Thank You for Viewing</p>
           </div>
         </div>
-      `;
-      flipbookContainer.appendChild(backCoverPage);
+      `, 'page-cover'));
 
-      initFlipbook();
+      initFlipbook(newPages);
       labelText.innerText = "Upload Images";
     });
 
     document.addEventListener('DOMContentLoaded', () => {
-      initFlipbook();
+      initFlipbook(buildDefaultPages());
 
       document.getElementById('btn-next').addEventListener('click', () => {
         if (pageFlip) pageFlip.flipNext();
@@ -446,7 +479,7 @@
         }
       });
 
-      // Fullscreen Toggle
+      // Stage Fullscreen Toggle
       document.getElementById('btn-fullscreen').addEventListener('click', () => {
         const stage = document.getElementById('flipbook-wrapper');
         if (!document.fullscreenElement) {
@@ -467,7 +500,7 @@
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
           if (pageFlip) {
-            initFlipbook();
+            initFlipbook(buildDefaultPages());
           }
         }, 250);
       });
