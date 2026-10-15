@@ -1,21 +1,263 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>আমার প্রথম ওয়েবসাইট</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #0b3d91; /* NASA Blue Color */
-            color: white;
-            padding: 50px;
-        }
-        h1 { font-size: 40px; }
-        p { font-size: 20px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Interactive Flipbook</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #0f172a;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header {
+      width: 100%;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1e293b;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      color: #38bdf8;
+    }
+
+    .upload-btn {
+      background: #2563eb;
+      color: white;
+      padding: 10px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .upload-btn:hover {
+      background: #1d4ed8;
+    }
+
+    #imageInput {
+      display: none;
+    }
+
+    /* Flipbook Container */
+    .viewport {
+      perspective: 1200px;
+      width: 100%;
+      height: 60vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .book {
+      width: 300px;
+      height: 420px;
+      position: relative;
+      transform-style: preserve-3d;
+    }
+
+    .page {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: left center;
+      transform-style: preserve-3d;
+      transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1);
+      cursor: pointer;
+      border-radius: 0 8px 8px 0;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+    }
+
+    .page-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      backface-visibility: hidden;
+      border-radius: 0 8px 8px 0;
+      overflow: hidden;
+      background: #334155;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .page-face.back {
+      transform: rotateY(180deg);
+      border-radius: 8px 0 0 8px;
+    }
+
+    .page-face img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Controls */
+    .controls {
+      margin-bottom: 30px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .nav-btn {
+      background: #1e293b;
+      color: white;
+      border: 1px solid #475569;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .nav-btn:hover {
+      background: #334155;
+    }
+
+    .page-number {
+      color: #94a3b8;
+    }
+
+    .page.flipped {
+      transform: rotateY(-180deg);
+    }
+  </style>
 </head>
 <body>
-    <h1>স্বাগতম আমার ওয়েবসাইটে!</h1>
-    <p>এখানে মহাকাশ, NASA-র ছবি এবং বিভিন্ন টিউটোরিয়াল শেয়ার করা হবে।</p>
+
+  <header>
+    <h1>3D Interactive Flipbook</h1>
+    <label for="imageInput" class="upload-btn">Upload Images</label>
+    <input type="file" id="imageInput" multiple accept="image/*">
+  </header>
+
+  <div class="viewport">
+    <div class="book" id="book">
+      <!-- Default Demo Page -->
+      <div class="page" id="demoPage" style="z-index: 1;">
+        <div class="page-face front">
+          <h2 style="margin-bottom: 15px;">📖 Welcome!</h2>
+          <p>Click <b>"Upload Images"</b> above to view your own pictures in 3D flipbook style.</p>
+        </div>
+        <div class="page-face back">
+          <h2>Back Cover</h2>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="nav-btn" id="prevBtn">Previous</button>
+    <span class="page-number" id="pageCounter">Page 0 of 0</span>
+    <button class="nav-btn" id="nextBtn">Next</button>
+  </div>
+
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const book = document.getElementById('book');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageCounter = document.getElementById('pageCounter');
+
+    let pages = [];
+    let currentPageIndex = 0;
+
+    imageInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      book.innerHTML = '';
+      pages = [];
+      currentPageIndex = 0;
+
+      const imageUrls = files.map(file => URL.createObjectURL(file));
+
+      for (let i = 0; i < imageUrls.length; i += 2) {
+        const frontImg = imageUrls[i];
+        const backImg = imageUrls[i + 1] || null;
+
+        const pageEl = document.createElement('div');
+        pageEl.classList.add('page');
+        
+        const frontFace = document.createElement('div');
+        frontFace.classList.add('page-face', 'front');
+        const imgFront = document.createElement('img');
+        imgFront.src = frontImg;
+        frontFace.appendChild(imgFront);
+
+        const backFace = document.createElement('div');
+        backFace.classList.add('page-face', 'back');
+        if (backImg) {
+          const imgBack = document.createElement('img');
+          imgBack.src = backImg;
+          backFace.appendChild(imgBack);
+        }
+
+        pageEl.appendChild(frontFace);
+        pageEl.appendChild(backFace);
+        book.appendChild(pageEl);
+
+        pages.push(pageEl);
+      }
+
+      updatePageZIndex();
+      updateCounter();
+    });
+
+    function updatePageZIndex() {
+      pages.forEach((page, index) => {
+        if (index < currentPageIndex) {
+          page.classList.add('flipped');
+          page.style.zIndex = index;
+        } else {
+          page.classList.remove('flipped');
+          page.style.zIndex = pages.length - index;
+        }
+      });
+    }
+
+    function updateCounter() {
+      pageCounter.textContent = `Page ${currentPageIndex} of ${pages.length}`;
+    }
+
+    nextBtn.addEventListener('click', () => {
+      if (currentPageIndex < pages.length) {
+        currentPageIndex++;
+        updatePageZIndex();
+        updateCounter();
+      }
+    });
+
+    prevBtn.addEventListener('click', () => {
+      if (currentPageIndex > 0) {
+        currentPageIndex--;
+        updatePageZIndex();
+        updateCounter();
+      }
+    });
+  </script>
+
 </body>
 </html>
